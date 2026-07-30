@@ -17,8 +17,10 @@ import { useSettingsStore } from '@/stores/settings';
 import { useGameStore } from '@/stores/game';
 import { useGalgameStore } from '@/stores/galgame';
 import { useChatStore } from '@/stores/chat';
+import { useSaveStore } from '@/stores/save';
 import { useToastStore } from '@/stores/toast';
 import { audioManager } from './audio';
+import { memoryService } from '@/services/memory';
 import type { RoundScript, PlotOutline, Effect } from '@/types/galgame';
 import {
   buildStoryWriterPrompt,
@@ -183,6 +185,32 @@ class GalgameLoopService {
         `【第 ${galgameStore.currentRound} 回合总结】\n\n${summary}`
       );
 
+      // 提取长期记忆
+      if (!this.mockMode.value) {
+        this.processingStage.value = '正在提取长期记忆...';
+        const saveStore = useSaveStore();
+        const gameStore = useGameStore();
+        if (saveStore.currentSaveId) {
+          try {
+            await memoryService.extractAndSave(
+              saveStore.currentSaveId,
+              galgameStore.currentRound,
+              { name: 'System', input: `这是第 ${galgameStore.currentRound} 回合的故事总结与角色自由活动记录。` },
+              summary,
+              [], // Galgame 模式暂不直接传行为，通过 summary 让书记员总结即可
+              {
+                date: gameStore.state.player.date,
+                time: gameStore.state.player.time,
+                location: gameStore.state.player.location,
+                characters: galgameStore.sceneCharacters.map(c => c.name)
+              }
+            );
+          } catch (e) {
+            console.error('[GalgameLoop] 记忆提取失败:', e);
+          }
+        }
+      }
+
       // 完成回合
       galgameStore.completeRound(summary);
       audioManager.playChime();
@@ -232,8 +260,19 @@ class GalgameLoopService {
       dangerouslyAllowBrowser: true,
     });
 
+    const saveStore = useSaveStore();
+    let memoryContext = '';
+    if (saveStore.currentSaveId && !this.mockMode.value) {
+      const retrieved = await memoryService.retrieve(
+        saveStore.currentSaveId,
+        playerInput,
+        galgameStore.currentRound
+      );
+      memoryContext = retrieved;
+    }
+
     // 使用 Galgame 专属自定义对话 Prompt 模板
-    const messages = buildCustomChatPrompt(characterName, playerInput) as any;
+    const messages = buildCustomChatPrompt(characterName, playerInput, memoryContext) as any;
 
     const response = await openai.chat.completions.create({
       model: logicConfig.model || 'gpt-3.5-turbo',
@@ -321,8 +360,22 @@ class GalgameLoopService {
       dangerouslyAllowBrowser: true,
     });
 
-    // 使用 Galgame 专属剧情规划大师 Prompt 模板
-    const messages = buildPlotDirectorPrompt(nextRound) as any;
+    const saveStore = useSaveStore();
+    let memoryContext = '';
+    if (saveStore.currentSaveId && !this.mockMode.value) {
+      const globalMems = await memoryService.getGlobalMemories(saveStore.currentSaveId);
+      const retrieved = await memoryService.retrieve(
+        saveStore.currentSaveId,
+        '主线剧情 核心目标 联盟 誓约 秘密',
+        galgameStore.currentRound
+      );
+      if (globalMems || retrieved) {
+        memoryContext = [globalMems, retrieved].filter(Boolean).join('\n\n');
+      }
+    }
+
+    // 使用 Galgame 专属剧情规划大纲 Prompt 模板
+    const messages = buildPlotDirectorPrompt(nextRound, memoryContext) as any;
 
     try {
       const response = await openai.chat.completions.create({
@@ -365,8 +418,22 @@ class GalgameLoopService {
       dangerouslyAllowBrowser: true,
     });
 
-    // 使用 Galgame 专属故事写手 Prompt 模板
-    const messages = buildStoryWriterPrompt(nextRound) as any;
+    const saveStore = useSaveStore();
+    let memoryContext = '';
+    if (saveStore.currentSaveId && !this.mockMode.value) {
+      const globalMems = await memoryService.getGlobalMemories(saveStore.currentSaveId);
+      const retrieved = await memoryService.retrieve(
+        saveStore.currentSaveId,
+        galgameStore.narrativeGuidance || galgameStore.plotOutline?.current_chapter.title || '剧情推进',
+        galgameStore.currentRound
+      );
+      if (globalMems || retrieved) {
+        memoryContext = [globalMems, retrieved].filter(Boolean).join('\n\n');
+      }
+    }
+
+    // 使用 Galgame 专属剧本 Prompt 模板
+    const messages = buildStoryWriterPrompt(nextRound, memoryContext) as any;
 
     const response = await openai.chat.completions.create({
       model: chatConfig.model || 'gpt-3.5-turbo',

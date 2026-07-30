@@ -163,7 +163,7 @@ function buildFullGameStateContext(gameStore: any, charStore: any): string {
 // 1. 故事写手 Prompt — 每回合调用，输出 RoundScript JSON
 // ===================================================================
 
-export function buildStoryWriterPrompt(nextRound: number): Array<{ role: string; content: string }> {
+export function buildStoryWriterPrompt(nextRound: number, memoryContext: string = ''): Array<{ role: string; content: string }> {
   const gameStore = useGameStore();
   const galgameStore = useGalgameStore();
   const charStore = useCharacterStore();
@@ -313,7 +313,7 @@ ${narrativeGuidance ? `## 玩家指定剧情导向\n**【强烈指令】玩家�
 // 2. 剧情规划大师 Prompt — 每 10 回合 / 强制触发
 // ===================================================================
 
-export function buildPlotDirectorPrompt(nextRound: number): Array<{ role: string; content: string }> {
+export function buildPlotDirectorPrompt(nextRound: number, memoryContext: string = ''): Array<{ role: string; content: string }> {
   const gameStore = useGameStore();
   const galgameStore = useGalgameStore();
   const p = gameStore.state.player;
@@ -344,6 +344,8 @@ ${ANTI_MARY_SUE}
 - 伏笔网络的维护（埋设、发展、临近揭示、已解决）
 - 角色关系的宏观动态
 - 给故事写手的风格/节奏指引
+
+${memoryContext ? `【长期记忆回放】\n${memoryContext}\n` : ''}
 
 ## 你的编剧原则
 - 故事要有**起承转合**的节奏，不能永远平淡也不能永远紧张
@@ -410,7 +412,8 @@ ${galgameStore.narrativeGuidance ? `## 玩家指定剧情导向\n**【强烈指�
  */
 export function buildCustomChatPrompt(
   characterName: string,
-  playerInput: string
+  playerInput: string,
+  memoryContext: string = ''
 ): Array<{ role: string; content: string }> {
   const gameStore = useGameStore();
   const charStore = useCharacterStore();
@@ -439,6 +442,8 @@ export function buildCustomChatPrompt(
 
 ## 角色设定
 ${charDescription}
+
+${memoryContext ? `【长期记忆回放】\n${memoryContext}\n` : ''}
 
 ## 当前状态
 - 玩家（${p.name || '玩家'}）设定：

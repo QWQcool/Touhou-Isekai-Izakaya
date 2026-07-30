@@ -114,6 +114,7 @@ function handleStartRound() {
 /** 沉浸式建档完成，初始化世界并开局 */
 async function handleWizardComplete(data: any) {
   showNewGameWizard.value = false
+  galgameStore.phase = 'loading'
   
   // 1. 若当前没有任何存档，创建一个专属的新存档（复用沙盒存档体系）
   if (!saveStore.currentSaveId) {

@@ -131,14 +131,11 @@ function finalizeCreation() {
     location: formData.value.location
   }
 
-  const initialMessage = '【系统提示：新游戏已开始。玩家通过命运之门降临幻想乡，请用优雅的文字描述周遭环境，并开启对话。】'
-
   emit('complete', {
     name: formData.value.name,
     difficulty: 'normal', // Galgame 模式默认锁定普通难度即可，专注叙事
     persona: JSON.stringify(finalPersonaObj, null, 2),
     stats: finalStats,
-    initialMessage,
   })
 }
 
