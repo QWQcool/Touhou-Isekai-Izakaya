@@ -38,7 +38,8 @@ import {
   History,
   Gavel,
   Network,
-  Github
+  Github,
+  Gamepad2
 } from 'lucide-vue-next';
 import PromptBuilder from '@/components/PromptBuilder.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -60,11 +61,14 @@ import { dbService } from '@/services/DatabaseService';
 import { memoryService } from '@/services/memory';
 import { useToastStore } from '@/stores/toast';
 import { multiplayerService } from '@/services/MultiplayerService';
+import GalgameEngine from '@/components/galgame/GalgameEngine.vue';
+import { useGalgameStore } from '@/stores/galgame';
 
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const saveStore = useSaveStore();
 const gameStore = useGameStore();
+const galgameStore = useGalgameStore();
 const toastStore = useToastStore();
 const { confirm } = useConfirm();
 
@@ -122,6 +126,7 @@ const isMobileDrawerOpen = ref(false);
 const isMigrating = ref(false);
 const migrationProgress = ref(0);
 const migrationMessage = ref('');
+const isRetrying = ref(false);
 
 const userOpenCombat = ref(false);
 const userOpenQuest = ref(false);
@@ -133,6 +138,25 @@ const mpStatusVisible = ref(false);
 const isGuestProcessing = ref(false);
 const guestStage = ref<'preparing' | 'generating_story' | 'background_processing' | 'idle'>('idle');
 const guestStreamedContent = ref('');
+
+// Galgame 模式状态计算
+const isGalgameMode = computed(() => settingsStore.playMode === 'galgame');
+
+function togglePlayMode() {
+  if (settingsStore.playMode === 'sandbox') {
+    // Check if multiplayer is active before switching to Galgame mode
+    if (gameStore.multiplayer.isMultiplayer) {
+      toastStore.addToast('联机模式下暂不支持开启 Galgame 模式喵！', 'warning')
+      audioManager.playError()
+      return
+    }
+    settingsStore.playMode = 'galgame'
+  } else {
+    settingsStore.playMode = 'sandbox'
+  }
+  settingsStore.saveSettings();
+  audioManager.playPageFlip();
+}
 
 // 监听全局事件以获取交互反馈
 onMounted(() => {
@@ -191,6 +215,28 @@ onMounted(() => {
         audioManager.playChime();
       }
     }
+  }) as EventListener);
+
+  window.addEventListener('galgame-combat-start', ((e: any) => {
+    const effect = e.detail?.effect;
+    if (effect) {
+      console.log('[App] 收到 Galgame 战斗触发信号:', effect);
+      // 使用沙盒模式标准的战斗准入流程
+      gameLoop.initializeCombat({
+        enemies: [{ name: effect.target || '未知敌人' }],
+        autoStart: true,
+        source: 'galgame'
+      });
+      userOpenCombat.value = true;
+      audioManager.playPageFlip();
+    }
+  }) as EventListener);
+
+  window.addEventListener('galgame-combat-end', ((e: any) => {
+    const { result, summary } = e.detail || {};
+    console.log('[App] 收到 Galgame 战斗结束信号:', result);
+    galgameStore.handleCombatEnd(result, summary);
+    userOpenCombat.value = false;
   }) as EventListener);
 });
 
@@ -723,25 +769,24 @@ function handleCombatTutorial() {
 }
 
 function handleCombatRetry() {
-  const combat = gameStore.state.system.combat;
+  userOpenCombat.value = false; // 先强制闭库，退出战斗UI喵
+  isRetrying.value = true;      // 启动时光回退黑色遮罩
   
-  userOpenCombat.value = false; // 先强制闭库进行状态机清理喵
-  
-  setTimeout(() => {
-    // 逻辑：如果存在保存的初始快照，则直接根据快照回滚状态并重新开启喵
-    if (combat && combat.initialSnapshot) {
-      console.log('[App] 检测到初始快照，执行战斗状态原地回滚喵...');
+  setTimeout(async () => {
+    try {
+      console.log('[App] 模拟浏览器刷新机制：直接通过重新拉取数据表回滚全局状态喵...');
+      // 通过重载数据库最新的安全快照，实现时间回溯，退回到接收战斗那一刻
+      await chatStore.loadHistory(); 
       
-      const snapshotClone = JSON.parse(JSON.stringify(combat.initialSnapshot));
-      // 核心修复：把快照本身再次作为备份挂载回克隆出的状态对象中，
-      // 否则玩家如果在同一场战斗里第二次战败，就会因为丢失它而掉进沙盒里喵！
-      snapshotClone.initialSnapshot = JSON.parse(JSON.stringify(combat.initialSnapshot));
+      // 数据重载完成后，保持黑屏半秒钟缓冲，再放开视线
+      setTimeout(() => {
+        isRetrying.value = false;
+        audioManager.playPageFlip();
+      }, 500);
       
-      gameStore.state.system.combat = snapshotClone;
-      userOpenCombat.value = true;
-      audioManager.playPageFlip();
-    } else {
-      // 回退逻辑：尝试调用标准的教学入口（适配旧有逻辑）
+    } catch (e) {
+      console.error('[App] 回滚到真实战斗节点失败，无奈退化为沙盒模式喵：', e);
+      isRetrying.value = false;
       handleHelpAction('startCombatTutorial');
     }
   }, 450);
@@ -794,13 +839,32 @@ const mpAllReady = computed(() => {
     </p>
   </div>
 
-  <div class="fixed inset-0 flex flex-col overflow-hidden font-sans text-ink bg-izakaya-paper">
-    <SakuraBackground />
-    <ToastContainer />
-    <MusicPlayer />
+  <!-- 时光回溯防抖渲染遮罩 (Retry Overlay) -->
+  <div
+    v-if="isRetrying"
+    class="fixed inset-0 z-[110] bg-black/95 flex flex-col items-center justify-center text-white p-8 animate-fade-in-down"
+  >
+    <Loader2 class="w-16 h-16 animate-spin mb-4 text-touhou-red opacity-80" />
+    <h2 class="text-2xl font-bold font-serif tracking-[0.2em] mb-3 bg-gradient-to-r from-red-200 to-red-400 text-transparent bg-clip-text">正在拨移时钟...</h2>
+    <p class="text-white/60 mb-6 text-center text-sm font-display leading-loose">
+      “命运是可以被重复试错的哦，只要你还有勇气站起来喵！”<br />
+      系统正在从以太中重组您最后完整的记忆脉络...
+    </p>
+  </div>
 
-    <!-- Top Bar: 居酒屋暖帘风格 -->
-    <header
+  <div class="fixed inset-0 flex flex-col overflow-hidden font-sans text-ink bg-izakaya-paper">
+    <transition name="mode-fade">
+      <SakuraBackground v-if="!isGalgameMode" />
+    </transition>
+    <ToastContainer />
+    <transition name="mode-fade">
+      <MusicPlayer v-if="!isGalgameMode" />
+    </transition>
+
+    <!-- Top Bar: 居酒屋暖帘风格（Galgame 模式下隐藏，由 GalgameEngine 内置专属顶栏） -->
+    <transition name="mode-fade">
+      <header
+        v-if="!isGalgameMode"
       class="h-12 md:h-14 bg-white/90 backdrop-blur-md border-b-2 border-touhou-red/20 flex items-center justify-between px-3 md:px-6 shadow-sm z-20 flex-shrink-0 relative"
     >
       <!-- 装饰性纹理叠加 -->
@@ -837,6 +901,17 @@ const mpAllReady = computed(() => {
 
       <!-- Desktop navigation buttons -->
       <div class="hidden md:flex items-center gap-2 relative z-10">
+        <!-- SLG模式入口按钮 -->
+        <button
+          @click="togglePlayMode()"
+          class="btn-gal-mode group animate-float-slow"
+          title="沉浸式体验：SLG模式"
+        >
+          <div class="btn-gal-bg"></div>
+          <Gamepad2 class="w-4 h-4 relative z-10 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110 animate-pulse-slow" />
+          <span class="relative z-10 font-serif-display font-medium tracking-widest ml-1">SLG模式</span>
+          <div class="btn-gal-shine"></div>
+        </button>
         <button
           @click="
             isSaveManagerOpen = true;
@@ -954,6 +1029,7 @@ const mpAllReady = computed(() => {
         </button>
       </div>
     </header>
+    </transition>
 
     <!-- Settings Modal -->
     <SettingsModal
@@ -1009,9 +1085,15 @@ const mpAllReady = computed(() => {
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="flex-1 flex overflow-hidden relative z-10">
-      <!-- Left Sidebar (Status) - Desktop only -->
+    <!-- ═══ Galgame 模式：独立全屏渲染引擎 ═══ -->
+    <transition name="mode-fade">
+      <GalgameEngine v-if="isGalgameMode" class="z-50" />
+    </transition>
+
+    <!-- ═══ 沙盒模式：原有聊天 UI ═══ -->
+    <transition name="mode-fade">
+      <div v-if="!isGalgameMode" class="flex-1 flex overflow-hidden relative z-10 bg-izakaya-paper">
+        <!-- Left Sidebar (Status) - Desktop only -->
       <aside
         class="w-72 bg-izakaya-paper/60 backdrop-blur-md border-r border-izakaya-wood/10 p-4 hidden md:flex flex-col gap-4 h-full shadow-[2px_0_10px_rgba(0,0,0,0.02)] overflow-y-auto custom-scrollbar"
       >
@@ -1731,7 +1813,8 @@ const mpAllReady = computed(() => {
         />
         <CharacterList />
       </aside>
-    </div>
+      </div>
+    </transition>
 
     <!-- Mobile Navigation -->
     <MobileNav
@@ -1754,3 +1837,96 @@ const mpAllReady = computed(() => {
     />
   </div>
 </template>
+
+<style scoped>
+/* ═══════════════════════════════════════
+   SLG模式入口按钮
+   ═══════════════════════════════════════ */
+.btn-gal-mode {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.35rem 1.125rem;
+  border-radius: 9999px;
+  color: white;
+  font-size: 0.85rem;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(180, 60, 60, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  animation: slg-btn-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes slg-btn-glow {
+  0% { box-shadow: 0 4px 12px rgba(180, 60, 60, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.2); }
+  100% { box-shadow: 0 4px 20px rgba(220, 80, 80, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.4); }
+}
+
+.animate-float-slow {
+  animation: slg-float 4s ease-in-out infinite;
+}
+
+@keyframes slg-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-pulse-slow {
+  animation: slg-pulse-icon 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes slg-pulse-icon {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.95); }
+}
+
+.btn-gal-mode:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 6px 16px rgba(180, 60, 60, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.btn-gal-mode:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn-gal-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #b43c3c 0%, #8a2a2a 100%);
+  z-index: 0;
+  transition: opacity 0.4s ease;
+}
+
+.btn-gal-mode:hover .btn-gal-bg {
+  opacity: 0.9;
+}
+
+.btn-gal-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: skewX(-20deg);
+  z-index: 10;
+  transition: none;
+}
+
+.btn-gal-mode:hover .btn-gal-shine {
+  animation: gal-shine 1.2s ease infinite;
+}
+
+@keyframes gal-shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+.mode-fade-enter-active,
+.mode-fade-leave-active {
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mode-fade-enter-from,
+.mode-fade-leave-to {
+  opacity: 0;
+}
+</style>

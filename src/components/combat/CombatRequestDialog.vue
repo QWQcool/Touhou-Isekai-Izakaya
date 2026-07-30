@@ -2,7 +2,7 @@
   <!-- 战斗遭遇请求对话框 (Combat Request Dialog) -->
   <!-- 战斗遭遇请求对话框 -->
   <div
-    class="absolute inset-0 z-50 flex items-center justify-center bg-stone-900/80 backdrop-blur-sm"
+    class="absolute inset-0 z-50 flex items-center justify-center bg-stone-900/80 backdrop-blur-sm pointer-events-auto"
   >
     <div
       class="relative max-w-md w-full rounded-xl overflow-hidden shadow-2xl animate-scale-in group"

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showOverlay" class="fixed inset-0 z-50 font-sans overflow-hidden animate-fade-in">
+  <div v-if="showOverlay" class="fixed inset-0 z-50 font-sans overflow-hidden animate-fade-in pointer-events-auto">
     <!-- 战斗请求确认弹窗 -->
     <CombatRequestDialog
       v-if="isPending"
@@ -268,8 +268,8 @@ function handleRetry() {
 watch(
   () => gameStore.state.system.combat,
   (newCombat) => {
-    if (newCombat && newCombat.isPending && (newCombat as any).tutorialMode) {
-      console.log('[CombatOverlay] 教学模式检测中: 正在自动开启战斗演示喵...');
+    if (newCombat && newCombat.isPending && ((newCombat as any).tutorialMode || (newCombat as any).autoStart)) {
+      console.log('[CombatOverlay] 教学模式或自动启动检测中: 正在自动开启战斗演示喵...');
       startCombat();
     }
   },
@@ -3045,6 +3045,23 @@ function closeCombat() {
   const resultSummary =
     `战斗结束。结果：${gameResult.value === 'win' ? '胜利' : '失败'}。` +
     `剩余HP: ${player.value?.hp}。\n\n【战斗日志】\n${logsText}`;
+
+  // 如果是 Galgame 模式触发的战斗，不再走沙盒模式的战报生成流程
+  if (combatState.value?.source === 'galgame') {
+    gameStore.updateState({
+      system: {
+        ...gameStore.state.system,
+        combat: null
+      }
+    });
+    emit('close');
+    window.dispatchEvent(
+      new CustomEvent('galgame-combat-end', {
+        detail: { result: gameResult.value, summary: resultSummary }
+      })
+    );
+    return;
+  }
 
   gameStore.updateState({
     system: {

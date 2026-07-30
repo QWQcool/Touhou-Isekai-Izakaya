@@ -166,6 +166,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const useDefaultTilemap = ref(false); // 调试：强制使用静态瓦片地图，而非 LLM 动态生成的地图数据
   const showNsfwStats = ref(false); // 神秘小开关：是否显示敏感属性 (NSFW fields Display Switch)
 
+  // 游玩模式切换：沙盒跑团 vs Galgame 视觉小说 (Play Mode Toggle)
+  const playMode = ref<'sandbox' | 'galgame'>('sandbox');
+
   const theme = ref<'light' | 'dark' | 'eye-protection'>('light');
   const currentSaveSlotId = ref<number | undefined>(undefined);
 
@@ -292,6 +295,8 @@ export const useSettingsStore = defineStore('settings', () => {
       }
 
       if (settings.theme) theme.value = settings.theme;
+      // 不再持久化读取 playMode，刷新页面永远默认进入沙盒模式
+      // if (settings.playMode) playMode.value = settings.playMode;
       currentSaveSlotId.value = settings.currentSaveSlotId;
     }
   }
@@ -313,6 +318,8 @@ export const useSettingsStore = defineStore('settings', () => {
       bgmVolume: bgmVolume.value,
       sfxVolume: sfxVolume.value,
       showNsfwStats: showNsfwStats.value,
+      // 不再持久化保存 playMode
+      // playMode: playMode.value,
       drawingConfig: JSON.parse(JSON.stringify(drawingConfig.value))
     };
 
@@ -510,6 +517,7 @@ export const useSettingsStore = defineStore('settings', () => {
     bgmVolume,
     sfxVolume,
     showNsfwStats,
+    playMode,
     drawingConfig,
     loadSettings,
     saveSettings,

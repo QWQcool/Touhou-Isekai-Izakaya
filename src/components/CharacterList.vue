@@ -7,6 +7,7 @@ import { audioManager } from '@/services/audio';
 import { Users, X } from 'lucide-vue-next';
 import type { NPCStatus } from '@/types/game';
 import { findAvatarImage, resolveCharacterId } from '@/services/characterMapping';
+import { getSpriteLevel, resolveSpritePath } from '@/services/spriteResolver';
 
 // 批量导入角色头像资源 (资产映射 - Import avatar images)喵
 const avatarImages = import.meta.glob('@/assets/images/head/*.png', {
@@ -198,13 +199,32 @@ function getAvatarImage(name: string) {
     <Teleport to="body">
       <div
         v-if="selectedNPC"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-izakaya-wood/20 backdrop-blur-sm p-4 animate-fade-in"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-izakaya-wood/40 backdrop-blur-sm p-4 animate-fade-in"
       >
-        <div
-          class="bg-izakaya-paper w-full max-w-md rounded-xl shadow-paper overflow-hidden flex flex-col max-h-[90vh] border border-izakaya-wood/10 relative"
+        <!-- 容器层：根据是否有立绘决定宽度 -->
+        <div 
+          class="w-full flex flex-row items-center justify-center transition-all duration-500"
+          :class="[getSpriteLevel(selectedNPC.name) !== 'default' ? 'max-w-4xl gap-4 md:gap-12' : 'max-w-md']"
         >
-          <!-- 模态框装饰纹理喵 -->
-          <div class="absolute inset-0 pointer-events-none opacity-10 bg-texture-rice-paper"></div>
+          <!-- 左侧：角色立绘 (有专属立绘时才渲染) -->
+          <div 
+            v-if="getSpriteLevel(selectedNPC.name) !== 'default'"
+            class="hidden md:flex w-1/2 h-[75vh] items-end justify-center animate-slide-in-left relative"
+          >
+            <img 
+              :src="resolveSpritePath(selectedNPC.name, selectedNPC.mood)"
+              class="max-w-full max-h-full object-contain filter drop-shadow-2xl floating-sprite"
+              style="mask-image: linear-gradient(to top, transparent 0%, black 15%); -webkit-mask-image: linear-gradient(to top, transparent 0%, black 15%);"
+              :alt="selectedNPC.name"
+            />
+          </div>
+
+          <!-- 右侧：原有详情卡片 -->
+          <div
+            class="bg-izakaya-paper flex-1 w-full max-w-md rounded-xl shadow-paper overflow-hidden flex flex-col max-h-[90vh] border border-izakaya-wood/10 relative"
+          >
+            <!-- 模态框装饰纹理喵 -->
+            <div class="absolute inset-0 pointer-events-none opacity-10 bg-texture-rice-paper"></div>
 
           <div
             class="p-4 border-b border-izakaya-wood/10 flex justify-between items-center bg-white/40 relative z-10"
@@ -374,6 +394,7 @@ function getAvatarImage(name: string) {
                 "{{ selectedNPC.inner_thought }}"
               </div>
             </div>
+            </div>
           </div>
         </div>
       </div>
@@ -419,5 +440,36 @@ function getAvatarImage(name: string) {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 69, 19, 0.2);
+}
+
+@keyframes slide-in-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes float-sprite {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.floating-sprite {
+  animation: float-sprite 6s ease-in-out infinite;
 }
 </style>

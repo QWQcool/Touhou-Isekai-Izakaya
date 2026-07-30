@@ -131,5 +131,7 @@ export interface CombatState {
   result?: 'win' | 'loss' | 'escape';
   bgm_suggestion?: string;
   tutorialMode?: boolean; // 新增：是否为教学模式
+  autoStart?: boolean; // 新增：是否跳过确认直接开始
+  source?: 'galgame' | 'sandbox' | string; // 新增：战斗触发来源
   initialSnapshot?: CombatState; // 新增：初始快照用于重开战斗喵
 }

@@ -359,6 +359,10 @@ export const useGameStore = defineStore('game', () => {
     state.value.system.pending_quest_trigger = quest;
   }
 
+  function setPendingPromise(promise: PromiseState | null) {
+    state.value.system.pending_promise_trigger = promise;
+  }
+
   function addQuest(quest: Quest) {
     // 确保任务队列容器已初始化
     if (!state.value.system.quests) {
@@ -1407,6 +1411,7 @@ export const useGameStore = defineStore('game', () => {
     setCombatState,
     startCombatTutorial,
     setPendingQuest,
+    setPendingPromise,
     addQuest,
     updateQuestStatus,
     unlockTalent,

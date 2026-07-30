@@ -149,6 +149,7 @@ export const CHARACTER_NAME_TO_ID_MAP: Record<string, string> = {
   冴月麟: 'rin',
   堀川雷鼓: 'raiko',
   崛川雷鼓: 'raiko',
+  掘川雷鼓: 'raiko',
   多多良小伞: 'kogasa',
   天魔: 'tenma',
   山城高岭: 'takane',

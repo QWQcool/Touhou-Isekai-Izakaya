@@ -118,6 +118,7 @@ const formData = reactive({
   detailedSetting: '', // For detailed JSON-like setting
   originId: 'traveler',
   presetLocation: '博丽神社',
+  autoStartOpening: true, // 新增：是否自动生成开局
   // 初始店铺经营配置 喵 (Store Config)
   store: {
     name: '',
@@ -214,23 +215,27 @@ function finish() {
 
   // 构造针对店铺开局模式的初始背景描述文本 喵 (Prompt Engineering)
   let initialMessage = '';
-  if (isStoreStart.value) {
-    initialMessage = `【店铺开局设定】
+  if (formData.autoStartOpening) {
+    if (isStoreStart.value) {
+      initialMessage = `【店铺开局设定】
 店铺名：${formData.store.name}
 店铺位置：${formData.store.location}
 店铺介绍：${formData.store.description}
 `;
-    if (formData.store.hasStaff) {
-      initialMessage += `【开局员工设定】
+      if (formData.store.hasStaff) {
+        initialMessage += `【开局员工设定】
 员工名：${formData.store.staffName}
 `;
-      if (formData.store.staffBackstoryType === 'random') {
-        initialMessage += `相关剧情：(请随机生成一段关于${formData.store.staffName}如何成为员工的剧情)\n`;
-      } else {
-        initialMessage += `相关剧情：${formData.store.staffBackstory}\n`;
+        if (formData.store.staffBackstoryType === 'random') {
+          initialMessage += `相关剧情：(请随机生成一段关于${formData.store.staffName}如何成为员工的剧情)\n`;
+        } else {
+          initialMessage += `相关剧情：${formData.store.staffBackstory}\n`;
+        }
       }
+      initialMessage += `\n请根据以上设定，编写一段精彩的开局剧情。${formData.store.hasStaff && formData.store.staffBackstoryType === 'random' ? '并描述员工加入的经过。' : ''}`;
+    } else {
+      initialMessage = '【系统提示：新游戏已开始。请根据设定进行开场白和背景环境描写引导玩家体验游戏，不需要等待玩家先发言。】';
     }
-    initialMessage += `\n请根据以上设定，编写一段精彩的开局剧情。${formData.store.hasStaff && formData.store.staffBackstoryType === 'random' ? '并描述员工加入的经过。' : ''}`;
   }
 
   if (mode.value === 'preset') {
@@ -1128,8 +1133,44 @@ function finish() {
             </div>
           </div>
 
+          <!-- 开局生成开关 喵 -->
           <div
-            class="p-4 bg-marisa-gold/10 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm border border-marisa-gold/20 flex gap-2 items-start"
+            @click="formData.autoStartOpening = !formData.autoStartOpening"
+            class="flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md mt-4"
+            :class="
+              formData.autoStartOpening
+                ? 'border-touhou-red bg-touhou-red/5'
+                : 'border-izakaya-wood/20 bg-white/40 dark:bg-stone-800/40 hover:border-touhou-red/50'
+            "
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-touhou-red"
+              >
+                <Sparkles class="w-5 h-5" />
+              </div>
+              <div>
+                <h4 class="font-bold text-sm text-izakaya-wood dark:text-stone-200">
+                  自动生成开场白
+                </h4>
+                <p class="text-xs text-izakaya-wood/70 dark:text-stone-400">
+                  进入游戏后，让 AI 根据您的档案自动生成一段开场背景剧情。
+                </p>
+              </div>
+            </div>
+            <div
+              class="relative w-10 h-5 bg-gray-200 dark:bg-stone-700 rounded-full transition-colors duration-300"
+              :class="{ 'bg-touhou-red': formData.autoStartOpening }"
+            >
+              <div
+                class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full shadow transition-transform duration-300"
+                :class="{ 'translate-x-5': formData.autoStartOpening }"
+              ></div>
+            </div>
+          </div>
+
+          <div
+            class="p-4 bg-marisa-gold/10 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm border border-marisa-gold/20 flex gap-2 items-start mt-4"
           >
             <span>⚠️</span>
             <span>确认后将生成新的世界线，此前的未保存进度将丢失。</span>

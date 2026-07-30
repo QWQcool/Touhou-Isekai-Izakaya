@@ -157,6 +157,7 @@ export interface GameSystemState {
   quests: Quest[]; // List of all quests
   promises?: PromiseState[]; // List of all promises
   pending_quest_trigger?: Quest | null; // Quest waiting for acceptance
+  pending_promise_trigger?: PromiseState | null; // Promise waiting for acceptance
   predicted_next_round_chars?: string[]; // Characters predicted to appear in the next round
   difficulty?: 'gentle' | 'normal' | 'cruel';
 }
@@ -171,6 +172,15 @@ export interface GameState {
   // Map of IdentityKey -> PlayerStatus
   // Only populated in Host's save or synced to Guests
   multiplayer_companions?: Record<string, PlayerStatus>;
+
+  // Galgame specific persistent state
+  galgame?: {
+    currentRound: number;
+    plotOutline: any;
+    replanCountdown: number;
+    roundSummaries: Array<{ round: number; summary: string }>;
+    executedActions: Record<string, string[]>;
+  };
 }
 
 export interface MultiplayerPlayer {

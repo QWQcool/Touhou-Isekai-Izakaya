@@ -501,6 +501,9 @@ class GameLoopService {
       // 播放通知音效
       audioManager.playChime();
 
+      // 注意：Galgame 模式拥有独立的回合编排器 (galgameLoop.ts)，
+      // 不再通过此处的 sandbox gameLoop 处理。
+
       // C. 如果存在，更新思考内容
       if (thoughtContent && assistantMsgId) {
         await chatStore.updateMessage(assistantMsgId, { thought_content: thoughtContent });
@@ -937,7 +940,7 @@ class GameLoopService {
     }
   }
 
-  private initializeCombat(triggerData: any) {
+  public initializeCombat(triggerData: any) {
     console.log('[游戏循环] 正在初始化战斗系统状态...');
     const gameStore = useGameStore();
     const charStore = useCharacterStore();
@@ -1424,8 +1427,10 @@ class GameLoopService {
 
     // 3. 初始化战斗状态
     const combatState: CombatState = {
-      isActive: false, // 等待用户确认
+      isActive: false, // 等待用户确认 (或由 autoStart 自动确认)
       isPending: true, // 显示“战斗请求”对话框
+      autoStart: !!triggerData.autoStart, // 标记为自动开始
+      source: triggerData.source || 'sandbox', // 标记战斗来源
       turn: 0,
       combatants: [playerCombatant, ...allies, ...enemies],
       logs: [],
