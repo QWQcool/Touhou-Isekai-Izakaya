@@ -11,7 +11,7 @@
 import { useGameStore } from '@/stores/game';
 import { useCharacterStore } from '@/stores/character';
 import { useGalgameStore } from '@/stores/galgame';
-import { useSettingsStore } from '@/stores/settings';
+// useSettingsStore 由各调用方按需引入
 import { getAvailableCharacters } from '@/services/spriteResolver';
 import { resolveCharacterId } from '@/services/characterMapping';
 import {
@@ -22,7 +22,7 @@ import {
   ANTI_EASY_LOVE,
   ANTI_MARY_SUE,
 } from '@/services/promptFragments';
-import type { PlotOutline } from '@/types/galgame';
+// PlotOutline type is used in galgameLoop.ts via dynamic import
 
 // ===================================================================
 // 辅助函数：提取玩家详细人设
@@ -167,7 +167,7 @@ export function buildStoryWriterPrompt(nextRound: number, memoryContext: string 
   const gameStore = useGameStore();
   const galgameStore = useGalgameStore();
   const charStore = useCharacterStore();
-  const settingsStore = useSettingsStore();
+  void memoryContext; // 将通过 userPrompt 注入
   const p = gameStore.state.player;
 
   // 收集可用角色立绘名

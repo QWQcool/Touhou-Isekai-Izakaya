@@ -316,19 +316,7 @@ export const useGalgameStore = defineStore('galgame', () => {
     return null;
   }
 
-  // 不再需要此方法，由外部系统监听和处理 effects
-  function checkAndTriggerPendingCombat() {
-    if (pendingCombatEffect.value) {
-      console.log('[Galgame] 对话结束，触发挂起的战斗事件:', pendingCombatEffect.value);
-      // 发出全局事件，通知 App.vue 拉起战斗面板，并在事件详情中传递 combat_setup
-      window.dispatchEvent(
-        new CustomEvent('galgame-combat-start', {
-          detail: { effect: pendingCombatEffect.value },
-        })
-      );
-      pendingCombatEffect.value = null;
-    }
-  }
+  // checkAndTriggerPendingCombat: 已弃用，由 App.vue 监听 galgame-combat-start 事件处理
 
   /**
    * 触发特殊事件。

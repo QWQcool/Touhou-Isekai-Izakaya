@@ -3,7 +3,7 @@ import { computed, watch } from 'vue';
 import { useGameStore } from '@/stores/game';
 import { useToastStore } from '@/stores/toast';
 import { audioManager } from '@/services/audio';
-import { ScrollText, CheckCircle2, XCircle, Handshake } from 'lucide-vue-next';
+import { CheckCircle2, XCircle, Handshake } from 'lucide-vue-next';
 
 const gameStore = useGameStore();
 const toastStore = useToastStore();

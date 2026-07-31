@@ -12,7 +12,6 @@ import {
   Zap, 
   ScrollText,
   User,
-  Swords,
   Bookmark,
   LogOut
 } from 'lucide-vue-next'

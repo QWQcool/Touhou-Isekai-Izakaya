@@ -71,29 +71,49 @@ class GalgameLoopService {
           // 给 Mock 模式注入详细的角色状态变量，用于测试二级情报面板
           const gameStore = useGameStore();
           gameStore.state.npcs['灵梦'] = {
+            id: '灵梦',
+            name: '灵梦',
             favorability: 65,
+            obedience: 50,
             mood: '慵懒',
             relationship: '损友',
             clothing: '红白相间的露腋巫女服',
             posture: '斜靠在塞钱箱上',
             action: '发呆',
             hp: 100,
+            max_hp: 100,
             power: '极高',
+            face: '',
+            mouth: '',
+            chest: '平平无奇',
+            hands: '',
+            buttocks: '',
+            vagina: '',
+            anus: '',
             residence: '博丽神社',
-            chest: '平平无奇'
-          };
+          } as any;
           gameStore.state.npcs['魔理沙'] = {
+            id: '魔理沙',
+            name: '魔理沙',
             favorability: 80,
+            obedience: 60,
             mood: '兴奋',
             relationship: '常客',
             clothing: '黑白相间的魔法使装束，戴着大帽子',
             posture: '骑在扫帚上悬停半空',
             action: '四处张望',
             hp: 95,
+            max_hp: 100,
             power: '极高',
+            face: '',
+            mouth: '',
+            chest: '一般',
+            hands: '',
+            buttocks: '',
+            vagina: '',
+            anus: '',
             residence: '魔法森林',
-            chest: '一般'
-          };
+          } as any;
         }
 
         const script = getMockRoundScript(nextRound);
@@ -117,7 +137,7 @@ class GalgameLoopService {
         }
         // 如果是因为到达回合数触发的大纲更新，重置倒计时
         if (galgameStore.replanCountdown <= 0) {
-          galgameStore.replanCountdown = galgameStore.replanInterval;
+          galgameStore.replanCountdown = 10; // 默认每 10 回合重新规划
         }
       }
 
@@ -361,7 +381,6 @@ class GalgameLoopService {
    */
   private async callPlotDirector(nextRound: number): Promise<PlotOutline | null> {
     const settingsStore = useSettingsStore();
-    const gameStore = useGameStore();
     const galgameStore = useGalgameStore();
     const chatConfig = settingsStore.getEffectiveConfig('chat');
 
@@ -417,7 +436,6 @@ class GalgameLoopService {
    */
   private async callStoryWriter(nextRound: number): Promise<RoundScript | null> {
     const settingsStore = useSettingsStore();
-    const gameStore = useGameStore();
     const galgameStore = useGalgameStore();
     const chatConfig = settingsStore.getEffectiveConfig('chat');
 
@@ -437,7 +455,7 @@ class GalgameLoopService {
       const globalMems = await memoryService.getGlobalMemories(saveStore.currentSaveId);
       const retrieved = await memoryService.retrieve(
         saveStore.currentSaveId,
-        galgameStore.narrativeGuidance || galgameStore.plotOutline?.current_chapter.title || '剧情推进',
+        galgameStore.narrativeGuidance || galgameStore.plotOutline?.main_arc || '剧情推进',
         galgameStore.currentRound
       );
       if (globalMems || retrieved) {
@@ -453,8 +471,8 @@ class GalgameLoopService {
       messages,
       temperature: chatConfig.temperature ?? 0.7,
       stream: false,
-      timeout: Math.round(chatConfig.timeout || 300000),
-    });
+    },
+    { timeout: Math.round(chatConfig.timeout || 300000) });
 
     const raw = response.choices[0]?.message?.content || '';
     console.log('[GalgameLoop] 故事写手原始输出:', raw);
@@ -475,7 +493,6 @@ class GalgameLoopService {
    */
   private async callRoundSummary(): Promise<string> {
     const settingsStore = useSettingsStore();
-    const galgameStore = useGalgameStore();
     const logicConfig = settingsStore.getEffectiveConfig('logic');
 
     if (!logicConfig.apiKey) {

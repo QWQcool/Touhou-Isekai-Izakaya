@@ -132,7 +132,7 @@ export const MOCK_ROUND_SCRIPT_1: RoundScript = {
                   status: 'active',
                   requirements: ['击退 5 只吵闹的妖精'],
                   rewards: [
-                    { type: 'affection', value: 10, description: '灵梦好感度大幅提升' },
+                    { type: 'attribute', value: 10, description: '灵梦好感度大幅提升' },
                     { type: 'item', value: '御守,1', description: '获得 1 个破魔御守' }
                   ],
                   acceptedTurn: 0

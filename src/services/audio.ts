@@ -158,7 +158,7 @@ class AudioManager {
     // 随机抽取
     const track = tracks[Math.floor(Math.random() * tracks.length)];
     this.currentCategory = category;
-    this.playBgm(track, true); // 默认开启淡入淡出
+    this.playBgm(track!, true); // 默认开启淡入淡出
   }
 
   public playBgm(url: string, crossfade = true) {

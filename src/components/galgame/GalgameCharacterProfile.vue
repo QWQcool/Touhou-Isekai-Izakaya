@@ -29,7 +29,7 @@ const card = computed(() => {
 
 const status = computed(() => {
   const resolvedId = resolveCharacterId(props.characterName, charStore.characters, gameStore.state.npcs)
-  return gameStore.state.npcs[props.characterName] || gameStore.state.npcs[resolvedId] || {}
+  return (gameStore.state.npcs[props.characterName] || gameStore.state.npcs[resolvedId] || {}) as any
 })
 
 const spritePath = computed(() => {

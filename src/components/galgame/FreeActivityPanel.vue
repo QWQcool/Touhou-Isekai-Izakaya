@@ -10,9 +10,7 @@
 
 import { ref, computed, nextTick } from 'vue'
 import { useGalgameStore } from '@/stores/galgame'
-import { useGameStore } from '@/stores/game'
 import { galgameLoop } from '@/services/galgameLoop'
-import { resolveSpritePath } from '@/services/spriteResolver'
 import type { Interaction, SpecialEvent } from '@/types/galgame'
 import {
   MessageSquare,
@@ -25,7 +23,6 @@ import {
   Sparkles,
   PenTool,
   LogOut,
-  X,
   Target,
   HelpCircle
 } from 'lucide-vue-next'
@@ -35,7 +32,6 @@ const emit = defineEmits<{
 }>()
 
 const galgameStore = useGalgameStore()
-const gameStore = useGameStore()
 
 /** 自定义对话 */
 const customChatInput = ref('')
@@ -49,15 +45,7 @@ const guidanceText = ref('')
 const showGuidanceDetails = ref(false)
 
 /** 当前选中角色信息 */
-const selectedChar = computed(() => {
-  if (!galgameStore.selectedCharacter) return null
-  return galgameStore.sceneCharacters.find(
-    (c) => c.name === galgameStore.selectedCharacter
-  ) ?? null
-})
-
-/** 是否有交互结果对话在播放 */
-const hasActiveResult = computed(() => galgameStore.activeResultDialogues.length > 0)
+// _selectedChar 暂未使用
 
 /** 未触发的特殊事件 */
 const availableEvents = computed(() => {
@@ -69,11 +57,7 @@ function getCharAvatar(name: string): string {
   return `/src/assets/images/head/${name}_头像.png`
 }
 
-function getPortraitSrc(charName: string) {
-  const c = galgameStore.sceneCharacters.find((x) => x.name === charName)
-  const emo = c ? c.default_emotion : '常规'
-  return resolveSpritePath(charName, emo)
-}
+// _getPortraitSrc 暂未使用
 
 function confirmEndActivity() {
   if (guidanceText.value.trim()) {
@@ -102,10 +86,7 @@ function handleInteraction(interaction: Interaction, charName: string) {
   )
 }
 
-/** 推进结果对话 */
-function handleAdvanceResult() {
-  galgameStore.advanceResultDialogue()
-}
+// _handleAdvanceResult 暂未使用
 
 /** 触发特殊事件 */
 function handleSpecialEvent(event: SpecialEvent) {
@@ -141,7 +122,7 @@ async function handleCustomChat() {
 
     <!-- ========== 左侧：角色卡 + 交互下拉 (Cinematic HUD Style) ========== -->
     <div class="fa-chars">
-      <template v-for="(char, index) in galgameStore.sceneCharacters" :key="char.name">
+      <template v-for="char in galgameStore.sceneCharacters" :key="char.name">
         <!-- 角色卡片 (HUD Style) -->
         <div
           class="fa-char-card"

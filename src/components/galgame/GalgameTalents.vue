@@ -25,7 +25,7 @@ import { audioManager } from '@/services/audio';
 const gameStore = useGameStore();
 const toastStore = useToastStore();
 
-const player = computed(() => gameStore.state.player);
+const player = computed(() => gameStore.state.player as any);
 const combatTalents = computed(() => Object.values(TALENTS).filter((t) => t.category === 'combat'));
 
 // 拖拽与缩放状态
@@ -150,7 +150,7 @@ function handleUnlockTalent() {
   if (status !== 'available') return;
   
   if (player.value.p_points < selectedTalent.value.cost) {
-    toastStore.showToast('技能点不足 (INSUFFICIENT P-POINTS)', 'error');
+    toastStore.addToast('技能点不足 (INSUFFICIENT P-POINTS)', 'error');
     audioManager.playError();
     return;
   }
@@ -158,7 +158,7 @@ function handleUnlockTalent() {
   const success = gameStore.unlockTalent(selectedTalent.value.id, selectedTalent.value.cost);
   if (success) {
     audioManager.playLevelUp();
-    toastStore.showToast(`已解锁天赋: ${selectedTalent.value.name}`, 'success');
+    toastStore.addToast(`已解锁天赋: ${selectedTalent.value.name}`, 'success');
   }
 }
 

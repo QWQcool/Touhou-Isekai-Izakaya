@@ -120,7 +120,7 @@ function handleLocationSelect(loc: string) {
 }
 
 function finalizeCreation() {
-  const origin = PRESET_ORIGINS.find(o => o.id === formData.value.originId) || PRESET_ORIGINS[0]
+  const origin = (PRESET_ORIGINS.find(o => o.id === formData.value.originId) ?? PRESET_ORIGINS[0])!
   
   // 组装最终数据 (匹配 Sandbox Wizard 的数据结构，但大幅精简)
   const finalPersonaObj = {
@@ -168,11 +168,11 @@ const continuousIndex = computed(() => carouselIndex.value - dragProgress.value)
 
 function handleDragStart(e: MouseEvent | TouchEvent) {
   isDragging.value = true
-  startX.value = 'touches' in e ? e.touches[0].clientX : e.clientX
+  startX.value = 'touches' in e ? e.touches[0]!.clientX : e.clientX
 }
 function handleDragMove(e: MouseEvent | TouchEvent) {
   if (!isDragging.value) return
-  const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+  const clientX = 'touches' in e ? e.touches[0]!.clientX : e.clientX
   currentDragOffset.value = clientX - startX.value
 }
 function handleDragEnd() {

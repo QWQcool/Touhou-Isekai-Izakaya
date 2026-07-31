@@ -7,18 +7,15 @@
  * 自由活动：左侧角色卡 + 右侧事件 + 底部多功能对话框
  */
 
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useGalgameStore } from '@/stores/galgame'
 import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
 import { galgameLoop } from '@/services/galgameLoop'
-import { audioManager } from '@/services/audio'
 import BackgroundLayer from './BackgroundLayer.vue'
 import SpriteLayer from './SpriteLayer.vue'
 import DialogueBox from './DialogueBox.vue'
 import FreeActivityPanel from './FreeActivityPanel.vue'
-import GalgameSpells from './GalgameSpells.vue'
-import GalgameTalents from './GalgameTalents.vue'
 import GalgameQuestOffer from './GalgameQuestOffer.vue'
 import GalgamePromiseOffer from './GalgamePromiseOffer.vue'
 import GalgameHUD from './GalgameHUD.vue'
@@ -26,16 +23,14 @@ import GalgameSystemMenu from './GalgameSystemMenu.vue'
 import GalgameMapFullscreen from './GalgameMapFullscreen.vue'
 import GalgameCharacterProfile from './GalgameCharacterProfile.vue'
 import GalgameNewGameWizard from './GalgameNewGameWizard.vue'
-import { Loader2, Play, Sparkles } from 'lucide-vue-next'
+import { Play, Sparkles } from 'lucide-vue-next'
 import { useSaveStore } from '@/stores/save'
-import { useToastStore } from '@/stores/toast'
 import { useChatStore } from '@/stores/chat'
 
 const galgameStore = useGalgameStore()
 const gameStore = useGameStore()
 const settingsStore = useSettingsStore()
 const saveStore = useSaveStore()
-const toastStore = useToastStore()
 const chatStore = useChatStore()
 
 /** 退出 Galgame 模式，回到沙盒 */
@@ -52,7 +47,6 @@ const roundNumber = computed(() => galgameStore.currentRound)
 
 /** 沉浸式建档向导状态 */
 const showNewGameWizard = ref(false)
-const playerMoney = computed(() => gameStore.state?.player?.money ?? 0)
 
 /** 暖光粒子数组 */
 const particles = Array.from({ length: 30 }).map((_, i) => ({
@@ -123,13 +117,13 @@ async function handleWizardComplete(data: any) {
     if (slgSaves.length > 0) {
       const nums = slgSaves.map(s => {
         const match = s.name.match(/^SLG(\d+)$/)
-        return match ? parseInt(match[1]) : 0
+        return match ? parseInt(match[1]!) : 0
       })
       nextNum = Math.max(...nums, 0) + 1
     }
     const saveName = `SLG${nextNum}`
     const newSaveId = await saveStore.createSave(saveName, false)
-    await saveStore.switchSave(newSaveId)
+    await saveStore.switchSave(newSaveId!)
   }
 
   // 2. 注入建档基础数据到 gameStore

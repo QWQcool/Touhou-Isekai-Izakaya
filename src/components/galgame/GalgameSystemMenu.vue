@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { 
   X,
   Backpack, 
   Sparkles, 
   Zap, 
   ScrollText,
-  Map as MapIcon,
   Bookmark
 } from 'lucide-vue-next'
 import GalgameHistory from './GalgameHistory.vue'

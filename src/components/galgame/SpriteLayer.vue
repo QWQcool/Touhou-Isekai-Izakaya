@@ -10,7 +10,7 @@
  *   5. 人数自适应：2人宽松、5人紧凑
  */
 
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { resolveSpritePath, DEFAULT_FALLBACK } from '@/services/spriteResolver'
 import { resolveCharacterId } from '@/services/characterMapping'
 import { useGameStore } from '@/stores/game'
