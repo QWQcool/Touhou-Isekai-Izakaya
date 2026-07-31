@@ -18,6 +18,7 @@ import SummaryModal from '@/components/SummaryModal.vue';
 import HelpModal from '@/components/HelpModal.vue';
 import ToastContainer from '@/components/ToastContainer.vue';
 import NewPlayerGuide from '@/components/NewPlayerGuide.vue';
+import GalgameModeGuide from '@/components/GalgameModeGuide.vue';
 import CombatDemoGuide from '@/components/CombatDemoGuide.vue';
 import MultiplayerHub from '@/components/MultiplayerHub.vue';
 import DecisionOverlay from '@/components/DecisionOverlay.vue';
@@ -1155,6 +1156,11 @@ const mpAllReady = computed(() => {
               @open-save-manager="isSaveManagerOpen = true"
               @open-help="isHelpOpen = true"
             />
+            
+            <GalgameModeGuide
+              v-model:is-visible="isGuideVisible"
+              @start-galgame="togglePlayMode"
+            />
 
             <!-- Load More Button -->
             <div v-if="chatStore.hasMore" class="flex justify-center py-2">
@@ -1449,6 +1455,12 @@ const mpAllReady = computed(() => {
             v-model:is-visible="isGuideVisible"
             @open-save-manager="isSaveManagerOpen = true"
             @open-help="isHelpOpen = true"
+          />
+
+          <!-- 视觉小说模式向导喵 -->
+          <GalgameModeGuide
+            v-model:is-visible="isGuideVisible"
+            @start-galgame="togglePlayMode"
           />
 
           <!-- 战斗教学沙盒快捷入口喵 -->

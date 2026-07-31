@@ -98,6 +98,11 @@ class GalgameLoopService {
 
         const script = getMockRoundScript(nextRound);
         galgameStore.loadRoundScript(script);
+        if (script.bgm_mood) {
+          audioManager.playBgmByCategory(script.bgm_mood);
+        } else {
+          audioManager.playBgmByCategory('daily');
+        }
         toastStore.addToast(`【Mock】第 ${nextRound} 回合开始`, 'info', 3000);
         return;
       }
@@ -126,6 +131,14 @@ class GalgameLoopService {
 
       // 步骤 3：加载剧本，开始前端回放
       galgameStore.loadRoundScript(script);
+      
+      // 触发 BGM
+      if (script.bgm_mood) {
+        audioManager.playBgmByCategory(script.bgm_mood);
+      } else {
+        audioManager.playBgmByCategory('daily');
+      }
+
       audioManager.playPageFlip();
       
       // 清空玩家的自定义剧情引导（只生效一回合）

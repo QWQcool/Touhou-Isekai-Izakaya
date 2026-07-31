@@ -220,6 +220,7 @@ ${WORLD_SETTING_CORE}
 - 开场叙事要有**画面感**，用环境描写营造氛围，**篇幅必须充实**
 - 交互选项的效果要**合理有趣**，不能全是正面效果
 - 特殊事件要**令人惊喜**，但不能脱离剧情逻辑
+- BGM 情感基调 (bgm_mood) 必须根据本回合剧情严格选择："daily"（日常/平静）、"cheerful"（欢快/搞笑）、"tense"（紧张/冲突）、"suspense"（悬疑/暗流）、"epic"（高燃/绝境）、"none"（静音）
 - ${difficultyHint}
 
 ## 文本量要求（极重要！）
@@ -243,6 +244,7 @@ emotion 字段必须使用以下值之一：${availableEmotions}
   "round": number,          // 回合序号
   "scene": string,          // 场景标识
   "time_of_day": string,    // "早晨"|"上午"|"下午"|"傍晚"|"夜晚"|"深夜"
+  "bgm_mood": string,       // BGM 情感基调："daily"|"cheerful"|"tense"|"suspense"|"epic"|"none"
   "opening": {
     "bg": string,            // 背景标识
     "bgm": string,           // BGM 标识

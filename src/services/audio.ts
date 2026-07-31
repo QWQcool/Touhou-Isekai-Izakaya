@@ -1,6 +1,17 @@
 // 基于 Web Audio API 的音频管理器 (Audio Hub)
 // 通过程序化合成音效，避免外部重型音频资源依赖 (Zero-dependency SFX)
 
+// BGM 库配置 (Galgame 氛围池)
+export const BGM_LIBRARY: Record<string, string[]> = {
+  wizard: ['/audio/bgm/opening/creation.mp3'], // 待填入具体文件
+  daily: ['/audio/bgm/daily/track1.mp3', '/audio/bgm/daily/track2.mp3', '/audio/bgm/daily/track3.mp3'],
+  cheerful: ['/audio/bgm/cheerful/track1.mp3', '/audio/bgm/cheerful/track2.mp3'],
+  tense: ['/audio/bgm/tense/track1.mp3', '/audio/bgm/tense/track2.mp3'],
+  suspense: ['/audio/bgm/suspense/track1.mp3'],
+  epic: ['/audio/bgm/epic/track1.mp3', '/audio/bgm/epic/track2.mp3'],
+  none: []
+};
+
 class AudioManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -19,6 +30,9 @@ class AudioManager {
   // 背景音乐 (BGM) 播放状态
   private currentBgm: HTMLAudioElement | null = null;
   private bgmUrl: string | null = null;
+  private previousBgm: HTMLAudioElement | null = null;
+  private fadeInterval: any = null;
+  private currentCategory: string | null = null;
 
   constructor() {
     // 音频上下文 (AudioContext) 处于安全审计考虑，通常需在用户交互手势后才能激活
@@ -87,6 +101,10 @@ class AudioManager {
   }
 
   private updateBgmVolume() {
+    if (this.fadeInterval) {
+      // 正在执行淡入淡出时，不强行覆盖，以防打断渐变逻辑
+      return;
+    }
     if (this.currentBgm) {
       // 最终 BGM 物理音量 = 主音量 * BGM 分量音量系数
       // 注意：HTMLAudioElement.volume 接口仅接受 [0, 1] 区间的规范化浮点数。
@@ -116,31 +134,116 @@ class AudioManager {
   }
 
   // --- 背景音乐 (BGM) 调度管理逻辑 (Playlist Orchestration) ---
-  public playBgm(url: string) {
+  
+  public playBgmByCategory(category: string) {
+    if (category === 'none') {
+      this.stopBgm();
+      this.currentCategory = 'none';
+      return;
+    }
+    
+    // 如果类别没变，保持当前播放 (防止同类别切歌)
+    if (this.currentCategory === category && this.currentBgm && !this.currentBgm.paused) {
+      return;
+    }
+
+    const tracks = BGM_LIBRARY[category];
+    if (!tracks || tracks.length === 0) {
+      console.warn(`[音频服务] 未找到 ${category} 类别的 BGM`);
+      this.stopBgm();
+      this.currentCategory = category;
+      return;
+    }
+
+    // 随机抽取
+    const track = tracks[Math.floor(Math.random() * tracks.length)];
+    this.currentCategory = category;
+    this.playBgm(track, true); // 默认开启淡入淡出
+  }
+
+  public playBgm(url: string, crossfade = true) {
     if (this.bgmUrl === url && this.currentBgm && !this.currentBgm.paused) {
       return; // 目标音轨正在活跃播放中，跳过冗余请求 (Duplicate Guard)
     }
 
-    this.stopBgm();
+    if (!crossfade) {
+      this.stopBgm();
+    } else if (this.currentBgm) {
+      // 正在播放，执行交叉淡入淡出
+      if (this.previousBgm) {
+        this.previousBgm.pause();
+        this.previousBgm = null;
+      }
+      this.previousBgm = this.currentBgm;
+    }
 
     this.bgmUrl = url;
     this.currentBgm = new Audio(url);
     this.currentBgm.loop = true;
-    this.updateBgmVolume(); // 执行初始分量音量配置
-    this.currentBgm.muted = false; // 静音逻辑在上层 updateBgmVolume 中通过 0 增益处理，无需触发 DOM 级 Mute 标记
+    this.currentBgm.muted = false; // 静音逻辑在上层 updateBgmVolume 中通过 0 增益处理
+
+    if (crossfade && this.previousBgm) {
+      this.currentBgm.volume = 0;
+      this.startCrossfade();
+    } else {
+      this.updateBgmVolume(); // 执行初始分量音量配置
+    }
 
     this.currentBgm.play().catch((e) => {
       console.warn('BGM 播放拦截告警（可能因缺乏必要的用户交互手势）：', e);
     });
   }
 
+  private startCrossfade() {
+    if (this.fadeInterval) clearInterval(this.fadeInterval);
+    
+    const fadeDuration = 2000; // 2秒淡入淡出
+    const steps = 20;
+    const stepTime = fadeDuration / steps;
+    const targetVolume = this.isMuted ? 0 : this.volume * this.bgmVolume;
+    
+    let currentStep = 0;
+    
+    this.fadeInterval = setInterval(() => {
+      currentStep++;
+      const ratio = currentStep / steps;
+      
+      if (this.currentBgm) {
+        this.currentBgm.volume = targetVolume * ratio;
+      }
+      
+      if (this.previousBgm) {
+        this.previousBgm.volume = targetVolume * (1 - ratio);
+      }
+      
+      if (currentStep >= steps) {
+        clearInterval(this.fadeInterval);
+        this.fadeInterval = null;
+        if (this.previousBgm) {
+          this.previousBgm.pause();
+          this.previousBgm = null;
+        }
+      }
+    }, stepTime);
+  }
+
   public stopBgm() {
+    if (this.fadeInterval) {
+      clearInterval(this.fadeInterval);
+      this.fadeInterval = null;
+    }
     if (this.currentBgm) {
       this.currentBgm.pause();
       this.currentBgm.currentTime = 0;
       this.currentBgm = null;
     }
+    if (this.previousBgm) {
+      this.previousBgm.pause();
+      this.previousBgm.currentTime = 0;
+      this.previousBgm = null;
+    }
     this.bgmUrl = null;
+    this.currentCategory = null;
   }
 
   // 音效算法：短促清脆的 UI 点击音（Procedural Woodblock）

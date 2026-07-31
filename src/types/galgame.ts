@@ -17,6 +17,8 @@ export interface RoundScript {
   scene: string;
   /** 当前时间段 */
   time_of_day: '早晨' | '上午' | '下午' | '傍晚' | '夜晚' | '深夜';
+  /** 本回合BGM情感基调 */
+  bgm_mood?: 'daily' | 'cheerful' | 'tense' | 'suspense' | 'epic' | 'none';
 
   /** ① 开场叙事阶段 */
   opening: OpeningPhase;

@@ -8,6 +8,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Sparkles, Navigation } from 'lucide-vue-next'
 import { PRESET_ORIGINS, PRESET_LOCATIONS } from '@/constants/presets'
+import { audioManager } from '@/services/audio'
 
 const emit = defineEmits<{
   (e: 'complete', data: any): void
@@ -69,6 +70,7 @@ function startMonologue() {
 onMounted(() => {
   window.addEventListener('mousemove', handleMouseMove)
   startMonologue()
+  audioManager.playBgmByCategory('wizard')
 })
 
 onUnmounted(() => {
@@ -102,6 +104,7 @@ function handleNameSubmit() {
 }
 
 function handleOriginSelect(id: string) {
+  audioManager.playClick()
   formData.value.originId = id
   nextPhase()
 }
@@ -111,6 +114,7 @@ function handlePersonaSubmit() {
 }
 
 function handleLocationSelect(loc: string) {
+  audioManager.playSoftClick()
   formData.value.location = loc
   nextPhase()
 }
@@ -137,6 +141,9 @@ function finalizeCreation() {
     persona: JSON.stringify(finalPersonaObj, null, 2),
     stats: finalStats,
   })
+  
+  audioManager.stopBgm()
+  audioManager.playSpellCastAoE()
 }
 
 // ----------------------------------------
