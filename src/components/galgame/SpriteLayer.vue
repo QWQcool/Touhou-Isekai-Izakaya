@@ -11,7 +11,7 @@
  */
 
 import { computed } from 'vue'
-import { resolveSpritePath } from '@/services/spriteResolver'
+import { resolveSpritePath, DEFAULT_FALLBACK } from '@/services/spriteResolver'
 import { resolveCharacterId } from '@/services/characterMapping'
 import { useGameStore } from '@/stores/game'
 import { useCharacterStore } from '@/stores/character'
@@ -41,14 +41,14 @@ function handleImgError(event: Event, charName: string) {
 
   if (fallbackStage === 0) {
     // 阶段 1：回退到该角色的常规日常立绘
-    const fallbackPath = resolveSpritePath(charName, '常规');
-    if (fallbackPath) {
-      img.src = fallbackPath;
-    } else {
-      img.style.display = 'none';
-    }
+    img.dataset.fallbackStage = '1';
+    img.src = resolveSpritePath(charName, '常规');
+  } else if (fallbackStage === 1) {
+    // 阶段 2：回退到通用无脸黑影 (其他角色.png)
+    img.dataset.fallbackStage = '2';
+    img.src = DEFAULT_FALLBACK;
   } else {
-    // 阶段 2：连常规立绘都加载失败，直接隐藏
+    // 阶段 3：连通用黑影都加载失败，直接隐藏
     img.style.display = 'none';
   }
 }
@@ -96,8 +96,6 @@ const stagePositions = computed(() => {
     const spritePath = isSpeaking && props.spritePath
       ? props.spritePath
       : resolveSpritePath(char.name, char.default_emotion)
-
-    // 如果立绘不存在，我们在模板中根据 spritePath 是否存在来处理（由于现在返回 nullable），最好在后面用 v-show 过滤或处理
 
     // 获取角色实时情报
     const resolvedId = resolveCharacterId(char.name, charStore.characters, gameStore.state.npcs)
@@ -163,7 +161,6 @@ const openingSpriteStyle = computed(() => ({
         @click.stop="emit('select-character', pos.name)"
       >
         <img
-          v-if="pos.path"
           :src="pos.path"
           :alt="pos.name"
           class="stage__img stage__img--clickable"

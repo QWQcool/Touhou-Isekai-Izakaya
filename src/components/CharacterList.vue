@@ -212,7 +212,7 @@ function getAvatarImage(name: string) {
             class="hidden md:flex w-1/2 h-[75vh] items-end justify-center animate-slide-in-left relative"
           >
             <img 
-              :src="resolveSpritePath(selectedNPC.name, selectedNPC.mood)"
+              :src="resolveSpritePath(selectedNPC.name, selectedNPC.mood) || undefined"
               class="max-w-full max-h-full object-contain filter drop-shadow-2xl floating-sprite"
               style="mask-image: linear-gradient(to top, transparent 0%, black 15%); -webkit-mask-image: linear-gradient(to top, transparent 0%, black 15%);"
               :alt="selectedNPC.name"

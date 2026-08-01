@@ -9,7 +9,7 @@ import { X, Heart, Smile, Users, MapPin, Activity, CheckCircle2 } from 'lucide-v
 import { useGameStore } from '@/stores/game'
 import { useCharacterStore } from '@/stores/character'
 import { resolveCharacterId } from '@/services/characterMapping'
-import { resolveSpritePath, DEFAULT_FALLBACK, hasDailySprites } from '@/services/spriteResolver'
+import { resolveSpritePath, hasDailySprites } from '@/services/spriteResolver'
 
 const props = defineProps<{
   characterName: string
@@ -33,15 +33,10 @@ const status = computed(() => {
 })
 
 const spritePath = computed(() => {
-  return resolveSpritePath(props.characterName, '常规')
+  return resolveSpritePath(props.characterName, '常规') || undefined
 })
 
 const hasSprite = computed(() => hasDailySprites(props.characterName))
-
-function handleImgError(event: Event) {
-  const img = event.target as HTMLImageElement;
-  img.src = DEFAULT_FALLBACK;
-}
 
 // 动画状态
 const isMounted = ref(false)
@@ -65,7 +60,7 @@ function close() {
       
       <!-- 左侧：大立绘展示 -->
       <div class="profile-left" v-if="hasSprite">
-        <img :src="spritePath" class="profile-sprite" @error="handleImgError" />
+        <img :src="spritePath" class="profile-sprite" />
         <div class="sprite-glow"></div>
       </div>
 
