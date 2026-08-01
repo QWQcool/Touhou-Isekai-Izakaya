@@ -96,11 +96,11 @@ function openSystemMenu(tab: string) {
 
 /** 开始回合按钮 */
 function handleStartRound() {
-  if (galgameStore.currentRound === 0) {
-    // 启动沉浸式开场建档
+  if (galgameStore.currentRound === 0 && !saveStore.currentSaveId) {
+    // 只有在完全没有存档的纯净状态下，才启动沉浸式开场建档
     showNewGameWizard.value = true
   } else {
-    // 已经有存档，直接推进
+    // 已经有存档，或回合已在推进，直接开始/进入下一回合
     galgameLoop.startNewRound()
   }
 }
