@@ -15,8 +15,6 @@ import { normalizeEmotion } from './tagParser';
 const DAILY_SPRITE_BASE = '/src/assets/images/daily_sprites';
 /** 战斗立绘基础路径 */
 const BATTLE_SPRITE_BASE = '/src/assets/images/battle_sprites';
-/** 通用默认立绘（无匹配角色时使用） */
-export const DEFAULT_FALLBACK = `${BATTLE_SPRITE_BASE}/其他角色.png`;
 
 // 使用 import.meta.glob 让 Vite 将图片纳入打包依赖 (Asset bundling)
 const dailySpritesMap = import.meta.glob('/src/assets/images/daily_sprites/**/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -206,61 +204,67 @@ export function resolveBattleSpritePath(characterName: string): string | null {
 /**
  * 核心函数：将「角色名 + 表情标签」解析为完整的图片路径。
  *
- * 三级回退：
+ * 两级回退：
  *   1. 日常立绘（有表情差分）→ daily_sprites/{dir}/{emotion}_{dir}.png
  *   2. 战斗立绘（单图）→ battle_sprites/{name}_战斗立绘.png
- *   3. 默认立绘 → battle_sprites/其他角色.png
  *
  * @param characterName - 角色名（中文/英文/别名均可）
  * @param emotion - 表情标签（中文/英文均可，会自动归一化）
- * @returns 图片的 URL 路径（永不返回 null，兜底到默认立绘）
+ * @returns 图片的 URL 路径，如果没有则返回 null
  */
 export function resolveSpritePath(
   characterName: string,
   emotion: string = DEFAULT_EMOTION
-): string {
+): string | null {
   const cacheKey = `${characterName}/${emotion}`;
   if (resolvedCache.has(cacheKey)) {
     return resolvedCache.get(cacheKey)!;
   }
 
-  let path: string;
+  let path: string | undefined;
 
   // 第一级：尝试日常立绘（表情差分）
   const dailyDir = resolveCharacterDir(characterName);
   if (dailyDir) {
     let normalizedEmotion = normalizeEmotion(emotion);
-    // 强制兜底验证：如果归一化后的表情不在标准集合内，强制回退为常规
     if (!getAvailableEmotions().includes(normalizedEmotion)) {
       console.warn(`[立绘解析] 未知表情 "${normalizedEmotion}"，回退到 "${DEFAULT_EMOTION}"`);
       normalizedEmotion = DEFAULT_EMOTION;
     }
     const rawPath = `${DAILY_SPRITE_BASE}/${dailyDir}/${normalizedEmotion}_${dailyDir}.png`;
-    path = dailySpritesMap[rawPath] || rawPath;
-    resolvedCache.set(cacheKey, path);
-    return path;
+    
+    // 严格检查是否存在于打包后的资源字典中
+    if (dailySpritesMap[rawPath]) {
+      path = dailySpritesMap[rawPath];
+      resolvedCache.set(cacheKey, path);
+      return path;
+    } else {
+      console.warn(`[立绘解析] 日常立绘不存在: ${rawPath}`);
+    }
   }
 
   // 第二级：尝试战斗立绘
   const battleName = resolveBattleSpriteName(characterName);
   if (battleName) {
     const rawPath = `${BATTLE_SPRITE_BASE}/${battleName}_战斗立绘.png`;
-    path = battleSpritesMap[rawPath] || rawPath;
-    resolvedCache.set(cacheKey, path);
-    return path;
+    if (battleSpritesMap[rawPath]) {
+      path = battleSpritesMap[rawPath];
+      resolvedCache.set(cacheKey, path);
+      return path;
+    } else {
+      console.warn(`[立绘解析] 战斗立绘不存在: ${rawPath}`);
+    }
   }
 
-  // 第三级：默认立绘
-  console.warn(`[立绘解析] 角色「${characterName}」无匹配立绘，使用默认`);
-  path = battleSpritesMap[DEFAULT_FALLBACK] || DEFAULT_FALLBACK;
-  resolvedCache.set(cacheKey, path);
-  return path;
+  // 无匹配立绘 (废除其他角色兜底)
+  console.warn(`[立绘解析] 角色「${characterName}」无匹配立绘`);
+  return null;
 }
 
 /**
  * 获取角色的默认（常规）立绘路径。
  */
-export function getDefaultSprite(characterName: string): string {
+export function getDefaultSprite(characterName: string): string | null {
   return resolveSpritePath(characterName, DEFAULT_EMOTION);
 }
 
@@ -284,9 +288,20 @@ export function hasDailySprites(characterName: string): boolean {
 
 /**
  * 获取角色的立绘级别。
+ * 注意：只有真正存在该文件时，才返回对应级别。
  */
 export function getSpriteLevel(characterName: string): 'daily' | 'battle' | 'default' {
-  if (resolveCharacterDir(characterName)) return 'daily';
-  if (resolveBattleSpriteName(characterName)) return 'battle';
+  const dailyDir = resolveCharacterDir(characterName);
+  if (dailyDir) {
+    const rawPath = `${DAILY_SPRITE_BASE}/${dailyDir}/${DEFAULT_EMOTION}_${dailyDir}.png`;
+    if (dailySpritesMap[rawPath]) return 'daily';
+  }
+  
+  const battleName = resolveBattleSpriteName(characterName);
+  if (battleName) {
+    const rawPath = `${BATTLE_SPRITE_BASE}/${battleName}_战斗立绘.png`;
+    if (battleSpritesMap[rawPath]) return 'battle';
+  }
+  
   return 'default';
 }

@@ -9,7 +9,7 @@ import { X, Heart, Smile, Users, MapPin, Activity, CheckCircle2 } from 'lucide-v
 import { useGameStore } from '@/stores/game'
 import { useCharacterStore } from '@/stores/character'
 import { resolveCharacterId } from '@/services/characterMapping'
-import { resolveSpritePath, DEFAULT_FALLBACK } from '@/services/spriteResolver'
+import { resolveSpritePath } from '@/services/spriteResolver'
 
 const props = defineProps<{
   characterName: string
@@ -38,7 +38,7 @@ const spritePath = computed(() => {
 
 function handleImgError(event: Event) {
   const img = event.target as HTMLImageElement;
-  img.src = DEFAULT_FALLBACK;
+  img.style.display = 'none';
 }
 
 // 动画状态
@@ -63,7 +63,7 @@ function close() {
       
       <!-- 左侧：大立绘展示 -->
       <div class="profile-left">
-        <img :src="spritePath" class="profile-sprite" @error="handleImgError" />
+        <img v-if="spritePath" :src="spritePath" class="profile-sprite" @error="handleImgError" />
         <div class="sprite-glow"></div>
       </div>
 
