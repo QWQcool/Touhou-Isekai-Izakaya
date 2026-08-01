@@ -204,11 +204,11 @@ function getAvatarImage(name: string) {
         <!-- 容器层：根据是否有立绘决定宽度 -->
         <div 
           class="w-full flex flex-row items-center justify-center transition-all duration-500"
-          :class="[getSpriteLevel(selectedNPC.name) !== 'default' ? 'max-w-4xl gap-4 md:gap-12' : 'max-w-md']"
+          :class="[getSpriteLevel(selectedNPC.name) === 'daily' ? 'max-w-4xl gap-4 md:gap-12' : 'max-w-md']"
         >
-          <!-- 左侧：角色立绘 (有专属立绘时才渲染) -->
+          <!-- 左侧：角色立绘 (有专属日常立绘时才渲染) -->
           <div 
-            v-if="getSpriteLevel(selectedNPC.name) !== 'default'"
+            v-if="getSpriteLevel(selectedNPC.name) === 'daily'"
             class="hidden md:flex w-1/2 h-[75vh] items-end justify-center animate-slide-in-left relative"
           >
             <img 
