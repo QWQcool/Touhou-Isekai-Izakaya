@@ -18,6 +18,10 @@ const BATTLE_SPRITE_BASE = '/src/assets/images/battle_sprites';
 /** 通用默认立绘（无匹配角色时使用） */
 export const DEFAULT_FALLBACK = `${BATTLE_SPRITE_BASE}/其他角色.png`;
 
+// 使用 import.meta.glob 让 Vite 将图片纳入打包依赖 (Asset bundling)
+const dailySpritesMap = import.meta.glob('/src/assets/images/daily_sprites/**/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const battleSpritesMap = import.meta.glob('/src/assets/images/battle_sprites/**/*.png', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+
 /**
  * 拥有日常表情差分的角色目录映射表。
  * 键为 LLM 可能输出的任意名称变体，值为实际的文件夹/文件前缀名。
@@ -193,7 +197,8 @@ function resolveBattleSpriteName(characterName: string): string | null {
 export function resolveBattleSpritePath(characterName: string): string | null {
   const battleName = resolveBattleSpriteName(characterName);
   if (battleName) {
-    return `${BATTLE_SPRITE_BASE}/${battleName}_战斗立绘.png`;
+    const rawPath = `${BATTLE_SPRITE_BASE}/${battleName}_战斗立绘.png`;
+    return battleSpritesMap[rawPath] || rawPath;
   }
   return null;
 }
@@ -230,7 +235,8 @@ export function resolveSpritePath(
       console.warn(`[立绘解析] 未知表情 "${normalizedEmotion}"，回退到 "${DEFAULT_EMOTION}"`);
       normalizedEmotion = DEFAULT_EMOTION;
     }
-    path = `${DAILY_SPRITE_BASE}/${dailyDir}/${normalizedEmotion}_${dailyDir}.png`;
+    const rawPath = `${DAILY_SPRITE_BASE}/${dailyDir}/${normalizedEmotion}_${dailyDir}.png`;
+    path = dailySpritesMap[rawPath] || rawPath;
     resolvedCache.set(cacheKey, path);
     return path;
   }
@@ -238,15 +244,17 @@ export function resolveSpritePath(
   // 第二级：尝试战斗立绘
   const battleName = resolveBattleSpriteName(characterName);
   if (battleName) {
-    path = `${BATTLE_SPRITE_BASE}/${battleName}_战斗立绘.png`;
+    const rawPath = `${BATTLE_SPRITE_BASE}/${battleName}_战斗立绘.png`;
+    path = battleSpritesMap[rawPath] || rawPath;
     resolvedCache.set(cacheKey, path);
     return path;
   }
 
   // 第三级：默认立绘
   console.warn(`[立绘解析] 角色「${characterName}」无匹配立绘，使用默认`);
-  resolvedCache.set(cacheKey, DEFAULT_FALLBACK);
-  return DEFAULT_FALLBACK;
+  path = battleSpritesMap[DEFAULT_FALLBACK] || DEFAULT_FALLBACK;
+  resolvedCache.set(cacheKey, path);
+  return path;
 }
 
 /**
