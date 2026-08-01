@@ -9,7 +9,7 @@ import { X, Heart, Smile, Users, MapPin, Activity, CheckCircle2 } from 'lucide-v
 import { useGameStore } from '@/stores/game'
 import { useCharacterStore } from '@/stores/character'
 import { resolveCharacterId } from '@/services/characterMapping'
-import { resolveSpritePath } from '@/services/spriteResolver'
+import { resolveSpritePath, DEFAULT_FALLBACK, hasDailySprites } from '@/services/spriteResolver'
 
 const props = defineProps<{
   characterName: string
@@ -36,9 +36,11 @@ const spritePath = computed(() => {
   return resolveSpritePath(props.characterName, '常规')
 })
 
+const hasSprite = computed(() => hasDailySprites(props.characterName))
+
 function handleImgError(event: Event) {
   const img = event.target as HTMLImageElement;
-  img.style.display = 'none';
+  img.src = DEFAULT_FALLBACK;
 }
 
 // 动画状态
@@ -59,11 +61,11 @@ function close() {
 
 <template>
   <div class="gal-profile-overlay" @click="close">
-    <div class="gal-profile-modal" :class="{ 'is-open': isMounted }" @click.stop>
+    <div class="gal-profile-modal" :class="{ 'is-open': isMounted, 'no-sprite': !hasSprite }" @click.stop>
       
       <!-- 左侧：大立绘展示 -->
-      <div class="profile-left">
-        <img v-if="spritePath" :src="spritePath" class="profile-sprite" @error="handleImgError" />
+      <div class="profile-left" v-if="hasSprite">
+        <img :src="spritePath" class="profile-sprite" @error="handleImgError" />
         <div class="sprite-glow"></div>
       </div>
 
@@ -193,6 +195,10 @@ function close() {
   opacity: 0;
   transform: rotateX(10deg) translateY(20px);
   transition: all 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.gal-profile-modal.no-sprite {
+  width: 500px; /* 如果没有立绘，卡片变窄，内容居中 */
 }
 
 .gal-profile-modal.is-open {
